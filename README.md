@@ -20,7 +20,7 @@ The primary goal of this repository is to provide a basic framework for running 
 1. Clone this repository:
     ```sh
     git clone https://github.com/Hadlay-Zhang/MedVQA-RAD.git
-    cd MedicalVQA-RAD
+    cd MedVQA-RAD
     ```
 
 2. Install the required packages:
