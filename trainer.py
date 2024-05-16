@@ -194,7 +194,7 @@ class Trainer(object):
         offset = 0
         for g in grads:
             numel = g.numel()
-            out[offset:offset+numel].copy_(g.reshape(-1)) # ZZL 2024.4.28 g.view修改
+            out[offset:offset+numel].copy_(g.reshape(-1)) # g.view->g.reshape
             offset += numel
         return out[:offset]
 

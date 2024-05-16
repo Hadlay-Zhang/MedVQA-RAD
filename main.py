@@ -31,8 +31,6 @@ def parse_args():
                         help='the number of epoches')
     parser.add_argument('--lr', default=0.005, type=float, metavar='lr',
                         help='initial learning rate')
-    parser.add_argument('--earlystop', default=20,
-                        help='early stop if not improved for input epochs')
 
     # Gradient accumulation
     parser.add_argument('--batch_size', type=int, default=32,
@@ -44,9 +42,11 @@ def parse_args():
     parser.add_argument('--model', type=str, default='BAN', choices=['BAN', 'SAN'],
                         help='the model we use')
 
-    # Choices of RNN models
-    parser.add_argument('--rnn', type=str, default='LSTM', choices=['LSTM', 'GRU', 'ConvGRU'],
-                        help='the RNN we use')
+    # Choices of models
+    parser.add_argument('--text', type=str, default='LSTM', choices=['LSTM', 'GRU', 'ConvLSTM', 'BioBERT'],
+                        help='the text encoder')
+    parser.add_argument('--image', type=str, default='ConvNeXt', choices=['ConvNeXt', 'SwinTV2B', 'ViTL16'],
+                        help='the image encoder')
 
     # BAN - Bilinear Attention Networks
     parser.add_argument('--gamma', type=int, default=2,
@@ -54,9 +54,9 @@ def parse_args():
     parser.add_argument('--use_counter', action='store_true', default=False,
                         help='use counter module')
 
-    # SAN - Stacked Attention Networks
-    parser.add_argument('--num_stacks', default=2, type=int,
-                        help='num of stacks in Stack Attention Networks')
+    # # SAN - Stacked Attention Networks
+    # parser.add_argument('--num_stacks', default=2, type=int,
+    #                     help='num of stacks in Stack Attention Networks')
 
     # Utilities - support testing, gpu training or sampling
     parser.add_argument('--print_interval', default=20, type=int, metavar='N',
@@ -75,7 +75,7 @@ def parse_args():
                         help='concatenated 600-D word embedding')
 
     # Joint representation C dimension
-    parser.add_argument('--num_hid', type=int, default=1024,
+    parser.add_argument('--num_hid', type=int, default=768, 
                         help='dim of joint semantic features')
 
     # Activation function + dropout for classification module
@@ -120,6 +120,13 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
+    # hidden_size
+    if args.image == 'ConvNeXt':
+        args.feat_dim = 75264
+    elif args.image == 'ViT':
+        args.feat_dim = 200704
+    elif args.image == 'SwinTV2B':
+        args.feat_dim = 1024
     # create output directory and log file
     utils.create_dir(args.output)
     logger = utils.Logger(os.path.join(args.output, 'log.txt'))
@@ -134,8 +141,8 @@ if __name__ == '__main__':
     torch.backends.cudnn.deterministic = True
     # Load dictionary and RAD training dataset
     if args.use_RAD:
-        dictionary = dataset_RAD.Dictionary.load_from_file(os.path.join(args.RAD_dir, 'dictionary.pkl'))
-        train_dset = dataset_RAD.VQAFeatureDataset('train', args, dictionary, question_len=args.question_len)
+        # dictionary = dataset_RAD.Dictionary.load_from_file(os.path.join(args.RAD_dir, 'dictionary.pkl'))
+        train_dset = dataset_RAD.VQAFeatureDataset('train', args, None, question_len=args.question_len)
     batch_size = args.batch_size
     # Create VQA model
     constructor = 'build_%s' % args.model

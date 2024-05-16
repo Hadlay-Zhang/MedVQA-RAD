@@ -1,3 +1,9 @@
 data_RAD/
 saved_models/
 results/
+average.py
+results*.txt
+__pycache__/
+*.file
+text-length.py
+*copy.py

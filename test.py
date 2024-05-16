@@ -39,12 +39,14 @@ def parse_args():
                         help='batch size')
 
     # Choices of Attention models
-    parser.add_argument('--model', type=str, default='SAN', choices=['BAN', 'SAN'],
+    parser.add_argument('--model', type=str, default='BAN', choices=['BAN', 'SAN'],
                         help='the model we use')
 
-    # Choices of RNN models
-    parser.add_argument('--rnn', type=str, default='LSTM', choices=['LSTM', 'GRU', 'ConvGRU'],
-                        help='the RNN we use')
+    # Choices of models
+    parser.add_argument('--text', type=str, default='LSTM', choices=['LSTM', 'GRU', 'ConvLSTM', 'BioBERT'],
+                        help='the text encoder')
+    parser.add_argument('--image', type=str, default='ConvNeXt', choices=['ConvNeXt', 'SwinTV2B', 'ViTL16'],
+                        help='the image encoder')
 
     # BAN - Bilinear Attention Networks
     parser.add_argument('--gamma', type=int, default=2,
@@ -65,7 +67,7 @@ def parse_args():
                         help='concatenated 600-D word embedding')
 
     # Joint representation C dimension
-    parser.add_argument('--num_hid', type=int, default=1024,
+    parser.add_argument('--num_hid', type=int, default=768,
                         help='dim of joint semantic features')
 
     # Activation function + dropout for classification module
@@ -128,13 +130,14 @@ def get_result(model, dataloader, device, args):
         for v, q, a, ans_type, q_types, p_type in iter(dataloader):
             if p_type[0] != "freeform":
                 continue
-            if args.maml:
-                v[0] = v[0].reshape(v[0].shape[0], 84, 84).unsqueeze(1)
-            if args.autoencoder:
-                v[1] = v[1].reshape(v[1].shape[0], 128, 128).unsqueeze(1)
-            v[0] = v[0].to(device)
-            v[1] = v[1].to(device)
-            q = q.to(device)
+            # if args.maml:
+            #     v[0] = v[0].reshape(v[0].shape[0], 84, 84).unsqueeze(1)
+            # if args.autoencoder:
+            #     v[1] = v[1].reshape(v[1].shape[0], 128, 128).unsqueeze(1)
+            # v[0] = v[0].to(device)
+            # v[1] = v[1].to(device)
+            v = v.to(device)
+            # q = q.to(device)
             a = a.to(device)
             # inference and get logit
             if args.autoencoder:
@@ -180,11 +183,16 @@ if __name__ == '__main__':
     print(args)
     torch.backends.cudnn.benchmark = True
     args.device = torch.device("cuda:" + str(args.gpu) if args.gpu >= 0 else "cpu")
-
+    if args.image == 'ConvNeXt':
+        args.feat_dim = 75264
+    elif args.image == 'ViT':
+        args.feat_dim = 200704
+    elif args.image == 'SwinTV2B':
+        args.feat_dim = 1024
     # Check if evaluating on TDIUC dataset or VQA dataset
     if args.use_RAD:
-        dictionary = dataset_RAD.Dictionary.load_from_file(os.path.join(args.RAD_dir , 'dictionary.pkl'))
-        eval_dset = dataset_RAD.VQAFeatureDataset(args.split, args, dictionary)
+        # dictionary = dataset_RAD.Dictionary.load_from_file(os.path.join(args.RAD_dir , 'dictionary.pkl'))
+        eval_dset = dataset_RAD.VQAFeatureDataset(args.split, args)
 
     batch_size = args.batch_size
 

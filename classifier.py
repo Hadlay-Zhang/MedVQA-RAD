@@ -15,7 +15,7 @@ class SimpleClassifier(nn.Module):
         layers = [
             weight_norm(nn.Linear(in_dim, hid_dim), dim=None),
             activation_func,
-            nn.Dropout(args.dropout, inplace=False), # ZZL 2024.4.28 inplace=True修改
+            nn.Dropout(args.dropout, inplace=False), # inplace=True->False
             weight_norm(nn.Linear(hid_dim, out_dim), dim=None)
         ]
         self.main = nn.Sequential(*layers)

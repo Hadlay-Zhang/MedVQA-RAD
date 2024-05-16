@@ -1,7 +1,17 @@
+from __future__ import print_function
+'''
+Author: Hadlay Zhang
+Date: 2024-04-30 06:42:45
+LastEditors: Hadlay Zhang
+LastEditTime: 2024-05-16 13:50:00
+FilePath: /root/MedicalVQA-RAD/dataset_RAD.py
+Description: Methods for loading data. Unlike using embeddings in RNNs, pure questions are directly sent to dataloader so that tokenizer can process them.
+'''
+
 """
 This code is modified based on Jin-Hwa Kim's repository (Bilinear Attention Networks - https://github.com/jnhwkim/ban-vqa) by Xuan B. Nguyen
 """
-from __future__ import print_function
+
 import os
 import json
 import _pickle as cPickle
@@ -12,7 +22,6 @@ from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 from PIL import Image
 
-from language_model import WordEmbedding, QuestionEmbedding
 from attention import BiAttention
 from classifier import SimpleClassifier
 from fc import FCNet
@@ -42,63 +51,6 @@ def answer_filter(answers, label2ans, max_num=10):
         if label2ans[ans].isdigit() and max_num >= int(label2ans[ans]):
             return True
     return False
-
-class Dictionary(object):
-    def __init__(self, word2idx=None, idx2word=None):
-        if word2idx is None:
-            word2idx = {}
-        if idx2word is None:
-            idx2word = []
-        self.word2idx = word2idx
-        self.idx2word = idx2word
-
-    @property
-    def ntoken(self):
-        return len(self.word2idx)
-
-    @property
-    def padding_idx(self):
-        return len(self.word2idx)
-
-    def tokenize(self, sentence, add_word):
-        sentence = sentence.lower()
-        if "? -yes/no" in sentence:
-            sentence = sentence.replace("? -yes/no", "")
-        if "? -open" in sentence:
-            sentence = sentence.replace("? -open", "")
-        if "? - open" in sentence:
-            sentence = sentence.replace("? - open", "")
-        sentence = sentence.replace(',', '').replace('?', '').replace('\'s', ' \'s').replace('...', '').replace('x ray', 'x-ray').replace('.', '')
-        words = sentence.split()
-        tokens = []
-        if add_word:
-            for w in words:
-                tokens.append(self.add_word(w))
-        else:
-            for w in words:
-                # if a word is not in dictionary, it will be replaced with the last word of dictionary.
-                tokens.append(self.word2idx.get(w, self.padding_idx-1))
-        return tokens
-
-    def dump_to_file(self, path):
-        cPickle.dump([self.word2idx, self.idx2word], open(path, 'wb'))
-        print('dictionary dumped to %s' % path)
-
-    @classmethod
-    def load_from_file(cls, path):
-        print('loading dictionary from %s' % path)
-        word2idx, idx2word = cPickle.load(open(path, 'rb'))
-        d = cls(word2idx, idx2word)
-        return d
-
-    def add_word(self, word):
-        if word not in self.word2idx:
-            self.idx2word.append(word)
-            self.word2idx[word] = len(self.idx2word) - 1
-        return self.word2idx[word]
-
-    def __len__(self):
-        return len(self.idx2word)
 
 def _create_entry(img, data, answer):
     if None!=answer:
@@ -149,7 +101,7 @@ def _load_dataset(dataroot, name, img_id2val, label2ans):
     return entries
 
 class VQAFeatureDataset(Dataset):
-    def __init__(self, name, args, dictionary, dataroot='data', question_len=12):
+    def __init__(self, name, args, dictionary=None, dataroot='data', question_len=12):
         super(VQAFeatureDataset, self).__init__()
         self.args = args
         assert name in ['train', 'test']
@@ -160,7 +112,7 @@ class VQAFeatureDataset(Dataset):
         self.label2ans = cPickle.load(open(label2ans_path, 'rb'))
         self.num_ans_candidates = len(self.ans2label)
 
-        self.dictionary = dictionary
+        # self.dictionary = dictionary
         self.img_id2idx = json.load(open(os.path.join(self.dataroot, 'imgid2idx.json')))
         self.entries = _load_dataset(self.dataroot, name, self.img_id2idx, self.label2ans)
 
@@ -170,53 +122,22 @@ class VQAFeatureDataset(Dataset):
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
 
-        self.tokenize(question_len)
-        self.tensorize()
+        # self.tokenize(question_len)
+        self.tensorize_answers()
 
-        if args.autoencoder and args.maml:
-            self.v_dim = args.feat_dim * 2
-        else:
-            self.v_dim = args.feat_dim
+        self.v_dim = args.feat_dim
 
-    def tokenize(self, max_length=12):
-        """Tokenizes the questions.
-
-        This will add q_token in each entry of the dataset.
-        -1 represent nil, and should be treated as padding_idx in embedding
-        """
+    def tensorize_answers(self):
         for entry in self.entries:
-            tokens = self.dictionary.tokenize(entry['question'], False)
-            tokens = tokens[:max_length]
-            if len(tokens) < max_length:
-                # Note here we pad in front of the sentence
-                padding = [self.dictionary.padding_idx] * (max_length - len(tokens))
-                tokens = tokens + padding
-            utils.assert_eq(len(tokens), max_length)
-            entry['q_token'] = tokens
-
-    def tensorize(self):
-        if self.args.maml:
-            self.maml_images_data = torch.from_numpy(self.maml_images_data)
-            self.maml_images_data = self.maml_images_data.type('torch.FloatTensor')
-        if self.args.autoencoder:
-            self.ae_images_data = torch.from_numpy(self.ae_images_data)
-            self.ae_images_data = self.ae_images_data.type('torch.FloatTensor')
-        for entry in self.entries:
-            question = torch.from_numpy(np.array(entry['q_token']))
-            entry['q_token'] = question
-
             answer = entry['answer']
-            if None!=answer:
-                labels = np.array(answer['labels'])
-                scores = np.array(answer['scores'], dtype=np.float32)
-                if len(labels):
-                    labels = torch.from_numpy(labels)
-                    scores = torch.from_numpy(scores)
-                    entry['answer']['labels'] = labels
-                    entry['answer']['scores'] = scores
-                else:
-                    entry['answer']['labels'] = None
-                    entry['answer']['scores'] = None
+            if answer is not None:
+                labels = torch.tensor(answer['labels'], dtype=torch.long)
+                scores = torch.tensor(answer['scores'], dtype=torch.float)
+                entry['answer']['labels'] = labels
+                entry['answer']['scores'] = scores
+            else:
+                entry['answer']['labels'] = None
+                entry['answer']['scores'] = None
 
     def __getitem__(self, index):
         entry = self.entries[index]
@@ -227,7 +148,7 @@ class VQAFeatureDataset(Dataset):
         image = Image.open(image_path).convert('RGB')
         image = self.transform(image)
 
-        question = entry['q_token']
+        question = entry['question']
         answer = entry['answer']
 
         if answer is not None:
@@ -242,71 +163,3 @@ class VQAFeatureDataset(Dataset):
 
     def __len__(self):
         return len(self.entries)
-
-def tfidf_from_questions(names, args, dictionary, dataroot='data', target=['rad']):
-    inds = [[], []] # rows, cols for uncoalesce sparse matrix
-    df = dict()
-    N = len(dictionary)
-    if args.use_RAD:
-        dataroot = args.RAD_dir
-    def populate(inds, df, text):
-        tokens = dictionary.tokenize(text, True)
-        for t in tokens:
-            df[t] = df.get(t, 0) + 1
-        combin = list(itertools.combinations(tokens, 2))
-        for c in combin:
-            if c[0] < N:
-                inds[0].append(c[0]); inds[1].append(c[1])
-            if c[1] < N:
-                inds[0].append(c[1]); inds[1].append(c[0])
-
-    if 'rad' in target:
-        for name in names:
-            assert name in ['train', 'test']
-            question_path = os.path.join(dataroot, name + 'set.json')
-            questions = json.load(open(question_path))
-            for question in questions:
-                populate(inds, df, question['question'])
-
-    # TF-IDF
-    vals = [1] * len(inds[1])
-    for idx, col in enumerate(inds[1]):
-        assert df[col] >= 1, 'document frequency should be greater than zero!'
-        vals[col] /= df[col]
-
-    # Make stochastic matrix
-    def normalize(inds, vals):
-        z = dict()
-        for row, val in zip(inds[0], vals):
-            z[row] = z.get(row, 0) + val
-        for idx, row in enumerate(inds[0]):
-            vals[idx] /= z[row]
-        return vals
-
-    vals = normalize(inds, vals)
-
-    tfidf = torch.sparse.FloatTensor(torch.LongTensor(inds), torch.FloatTensor(vals))
-    tfidf = tfidf.coalesce()
-
-    # Latent word embeddings
-    emb_dim = 300
-    glove_file = os.path.join(dataroot, 'glove', 'glove.6B.%dd.txt' % emb_dim)
-    weights, word2emb = utils.create_glove_embedding_init(dictionary.idx2word[N:], glove_file)
-    print('tf-idf stochastic matrix (%d x %d) is generated.' % (tfidf.size(0), tfidf.size(1)))
-
-    return tfidf, weights
-
-if __name__=='__main__':
-    # dictionary = Dictionary.load_from_file('data_RAD/dictionary.pkl')
-    # tfidf, weights = tfidf_from_questions(['train'], None, dictionary)
-    # w_emb = WordEmbedding(dictionary.ntoken, 300, .0, 'c')
-    # w_emb.init_embedding(os.path.join('data_RAD', 'glove6b_init_300d.npy'), tfidf, weights)
-    # with open('data_RAD/embed_tfidf_weights.pkl', 'wb') as f:
-    #     torch.save(w_emb, f)
-    # print("Saving embedding with tfidf and weights successfully")
-
-    dictionary = Dictionary.load_from_file('data_RAD/dictionary.pkl')
-    w_emb = WordEmbedding(dictionary.ntoken, 300, .0, 'c')
-    with open('data_RAD/embed_tfidf_weights.pkl', 'rb') as f:
-        w_emb = torch.load(f)
-    print("Load embedding with tfidf and weights successfully")
