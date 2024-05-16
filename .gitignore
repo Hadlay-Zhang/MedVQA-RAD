@@ -6,4 +6,4 @@ results*.txt
 __pycache__/
 *.file
 text-length.py
-*copy.py
+base_model copy.py
