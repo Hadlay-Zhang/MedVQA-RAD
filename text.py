@@ -2,7 +2,7 @@
 Author: Hadlay Zhang
 Date: 2024-04-30 06:42:45
 LastEditors: Hadlay Zhang
-LastEditTime: 2024-05-16 13:34:25
+LastEditTime: 2024-05-18 22:44:02
 FilePath: /root/MedicalVQA-RAD/text.py
 Description: Text Encoder for extracting question features
 '''

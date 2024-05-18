@@ -39,14 +39,17 @@ def parse_args():
                         help='batch size')
 
     # Choices of Attention models
-    parser.add_argument('--model', type=str, default='BAN', choices=['BAN', 'SAN'],
-                        help='the model we use')
-
+    parser.add_argument('--att', type=str, default='BAN', choices=['BAN', 'SAN'],
+                        help='the attention model')
     # Choices of models
     parser.add_argument('--text', type=str, default='LSTM', choices=['LSTM', 'GRU', 'ConvLSTM', 'BioBERT'],
                         help='the text encoder')
     parser.add_argument('--image', type=str, default='ConvNeXt', choices=['ConvNeXt', 'SwinTV2B', 'ViTL16'],
                         help='the image encoder')
+
+    # Offline pretrained model loading
+    parser.add_argument('--text_path', type=str, default='/root/autodl-tmp/BioBERT-v1.1/',
+                        help='input file directory for pretrained Text Encoder')
 
     # BAN - Bilinear Attention Networks
     parser.add_argument('--gamma', type=int, default=2,
@@ -92,18 +95,6 @@ def parse_args():
     parser.add_argument('--feat_dim', default=64, type=int,
                         help='visual feature dim')
 
-    # Auto-encoder component hyper-parameters
-    parser.add_argument('--autoencoder', action='store_true', default=False,
-                        help='End to end model?')
-    parser.add_argument('--ae_model_path', type=str, default='pretrained_ae.pth',
-                        help='the maml_model_path we use')
-
-    # MAML component hyper-parameters
-    parser.add_argument('--maml', action='store_true', default=False,
-                        help='End to end model?')
-    parser.add_argument('--maml_model_path', type=str, default='pretrained_maml.weights',
-                        help='the maml_model_path we use')
-
     # Return args
     args = parser.parse_args()
     return args
@@ -130,20 +121,11 @@ def get_result(model, dataloader, device, args):
         for v, q, a, ans_type, q_types, p_type in iter(dataloader):
             if p_type[0] != "freeform":
                 continue
-            # if args.maml:
-            #     v[0] = v[0].reshape(v[0].shape[0], 84, 84).unsqueeze(1)
-            # if args.autoencoder:
-            #     v[1] = v[1].reshape(v[1].shape[0], 128, 128).unsqueeze(1)
-            # v[0] = v[0].to(device)
-            # v[1] = v[1].to(device)
             v = v.to(device)
             # q = q.to(device)
             a = a.to(device)
             # inference and get logit
-            if args.autoencoder:
-                features, _ = model(v, q)
-            else:
-                features = model(v, q)
+            features = model(v, q)
             preds = model.classifier(features)
             final_preds = preds
             batch_score = compute_score_with_logits(final_preds, a.data).sum()
@@ -196,7 +178,7 @@ if __name__ == '__main__':
 
     batch_size = args.batch_size
 
-    constructor = 'build_%s' % args.model
+    constructor = 'build_%s' % args.att
     model = getattr(base_model, constructor)(eval_dset, args)
     print(model)
     eval_loader = DataLoader(eval_dset, batch_size, shuffle=False, num_workers=0, pin_memory=True, collate_fn=utils.trim_collate)

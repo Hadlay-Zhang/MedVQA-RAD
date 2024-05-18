@@ -126,15 +126,9 @@ class Trainer(object):
                     answers = sample[2]
                     img_data = sample[0][1]
                     # MEVF loss computation
-                    if self.args.autoencoder:
-                        features, decoder = self.model(sample[0], sample[1])
-                    else:
-                        features = self.model(sample[0], sample[1])
+                    features = self.model(sample[0], sample[1])
                     preds = self.model.classifier(features)
                     loss = self.criterion(preds.float(), answers)
-                    if self.args.autoencoder:
-                        loss_ae = self.ae_criterion(img_data, decoder)
-                        loss = loss + (loss_ae*self.args.ae_alpha)
                     loss /= answers.size()[0]
                     final_preds = preds
                     batch_score = compute_score_with_logits(final_preds, sample[2].data).sum()

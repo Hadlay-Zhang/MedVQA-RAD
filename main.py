@@ -39,14 +39,17 @@ def parse_args():
                         help='update parameters every n batches in an epoch')
 
     # Choices of attention models
-    parser.add_argument('--model', type=str, default='BAN', choices=['BAN', 'SAN'],
-                        help='the model we use')
-
+    parser.add_argument('--att', type=str, default='BAN', choices=['BAN', 'SAN'],
+                        help='the attention model')
     # Choices of models
     parser.add_argument('--text', type=str, default='LSTM', choices=['LSTM', 'GRU', 'ConvLSTM', 'BioBERT'],
                         help='the text encoder')
     parser.add_argument('--image', type=str, default='ConvNeXt', choices=['ConvNeXt', 'SwinTV2B', 'ViTL16'],
                         help='the image encoder')
+
+    # Offline pretrained model loading
+    parser.add_argument('--text_path', type=str, default='/root/autodl-tmp/BioBERT-v1.1/',
+                        help='input file directory for pretrained Text Encoder')
 
     # BAN - Bilinear Attention Networks
     parser.add_argument('--gamma', type=int, default=2,
@@ -100,19 +103,6 @@ def parse_args():
     parser.add_argument('--feat_dim', default=64, type=int,
                         help='visual feature dim')
 
-    # Auto-encoder component hyper-parameters
-    parser.add_argument('--autoencoder', action='store_true', default=False,
-                        help='End to end model?')
-    parser.add_argument('--ae_model_path', type=str, default='pretrained_ae.pth',
-                        help='the maml_model_path we use')
-    parser.add_argument('--ae_alpha', default=0.001, type=float, metavar='ae_alpha',
-                        help='ae_alpha')
-
-    # MAML component hyper-parameters
-    parser.add_argument('--maml', action='store_true', default=False,
-                        help='End to end model?')
-    parser.add_argument('--maml_model_path', type=str, default='pretrained_maml.weights',
-                        help='the maml_model_path we use')
 
     # Return args
     args = parser.parse_args()
@@ -145,7 +135,7 @@ if __name__ == '__main__':
         train_dset = dataset_RAD.VQAFeatureDataset('train', args, None, question_len=args.question_len)
     batch_size = args.batch_size
     # Create VQA model
-    constructor = 'build_%s' % args.model
+    constructor = 'build_%s' % args.att
     model = getattr(base_model, constructor)(train_dset, args)
     optim = None
     epoch = 0
