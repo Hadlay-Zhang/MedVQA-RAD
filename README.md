@@ -2,6 +2,11 @@
 
 This repository is built entirely based on [MICCAI19-MedVQA](https://github.com/aioz-ai/MICCAI19-MedVQA). Gratitude to the original authors for their contributions. It is recommended to visit the original repository first.
 
+💡UPDATES:
+- [x] Replace CNNs and LSTMs with Transformers and BERTs.
+- [ ] Support advanced attention network (e.x., Co-Attention Network)
+- [ ] Support implementation on more datasets
+
 ## Introduction
 
 The primary goal of this repository is to provide a basic framework for running Medical Visual Question Answering tasks on the VQA-RAD dataset. Unlike traditional methods that use CNNs as Image Encoders and RNNs as Text Encoders, this framework aims to utilize advanced Transformer models as replacements.
@@ -32,6 +37,10 @@ The primary goal of this repository is to provide a basic framework for running 
 
 1. Download the VQA-RAD dataset from [here](https://vision.aioz.io/f/777a3737ee904924bf0d/?dl=1).
 2. Extract the dataset into `data_RAD/`.
+
+### Pretrained Models
+
+BERT-based pretrained models are utilized to encode questions. For example, you can use Huggingface's BioBERT model. Download the pretrained BioBERT model from [here](https://huggingface.co/dmis-lab/biobert-v1.1/tree/main), and then modify `args.text_path` to point to the model path.
 
 ### Usage
 
