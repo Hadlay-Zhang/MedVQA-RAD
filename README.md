@@ -63,6 +63,7 @@ To evaluate the model, modify the commands in `run.sh` and then run:
 The following tables showcase the performance of different models on the VQA-RAD dataset (All models utilize BAN as fusion method). The models were trained for 20 epochs or 40 epochs on a single A100-PCIE-40GB GPU (average of 10 iterations). The random seed settings can be found in `run.sh`.
 
 1. 20 epochs
+
 | Model (Image+Text) |     Closed      |      Open       |       All       |
 | :----------------: | :-------------: | :-------------: | :-------------: |
 |   ViTL16+BioBERT   | 0.7259 ± 0.0183 | 0.3138 ± 0.0242 | 0.5614 ± 0.0109 |
@@ -71,6 +72,7 @@ The following tables showcase the performance of different models on the VQA-RAD
 |    ConvNeXt+BERT   | 0.6822 ± 0.0136 | 0.3374 ± 0.0142 | 0.5445 ± 0.0081 |
 
 2. 40 epochs
+
 | Model (Image+Text) |     Closed      |      Open       |       All       |
 | :----------------: | :-------------: | :-------------: | :-------------: |
 |   ViTL16+BioBERT   | 0.7368 ± 0.0162 | 0.3577 ± 0.0196 | 0.5854 ± 0.0088 |
