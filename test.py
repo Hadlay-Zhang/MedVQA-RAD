@@ -42,7 +42,7 @@ def parse_args():
     parser.add_argument('--att', type=str, default='BAN', choices=['BAN', 'SAN'],
                         help='the attention model')
     # Choices of models
-    parser.add_argument('--text', type=str, default='LSTM', choices=['LSTM', 'GRU', 'ConvLSTM', 'BioBERT'],
+    parser.add_argument('--text', type=str, default='LSTM', choices=['LSTM', 'GRU', 'ConvLSTM', 'BioBERT', 'BERT'],
                         help='the text encoder')
     parser.add_argument('--image', type=str, default='ConvNeXt', choices=['ConvNeXt', 'SwinTV2B', 'ViTL16'],
                         help='the image encoder')
@@ -167,7 +167,7 @@ if __name__ == '__main__':
     args.device = torch.device("cuda:" + str(args.gpu) if args.gpu >= 0 else "cpu")
     if args.image == 'ConvNeXt':
         args.feat_dim = 75264
-    elif args.image == 'ViT':
+    elif args.image == 'ViTL16':
         args.feat_dim = 200704
     elif args.image == 'SwinTV2B':
         args.feat_dim = 1024

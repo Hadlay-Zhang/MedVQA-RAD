@@ -2,7 +2,7 @@
 Author: Hadlay Zhang
 Date: 2024-04-30 06:42:45
 LastEditors: Hadlay Zhang
-LastEditTime: 2024-05-18 22:49:55
+LastEditTime: 2024-05-31 00:19:40
 FilePath: /root/MedicalVQA-RAD/base_model.py
 Description: General VQA model with image, text, fusion and classifier
 '''
@@ -46,7 +46,6 @@ class BAN_Model(nn.Module):
         token_type_ids = tokens['token_type_ids'].clone().detach().to(self.args.device)
         attention_mask = tokens['attention_mask'].clone().detach().to(self.args.device)
         q_emb = self.q_model(input_ids=input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask)
-        
         # Attention
         b_emb = [0] * self.glimpse
         att, logits = self.v_att.forward_all(v_emb, q_emb) # b x g x v x q
@@ -55,7 +54,7 @@ class BAN_Model(nn.Module):
             atten, _ = logits[:,g,:,:].max(2)
             q_emb = self.q_prj[g](b_emb[g].unsqueeze(1)) + q_emb
         # print(q_emb.sum(1).shape)
-        return q_emb.sum(1)
+        return q_emb.sum(1) # torch.Size([32, 768])
 
     def classify(self, input_feats):
         return self.classifier(input_feats)

@@ -2,7 +2,7 @@
 Author: Hadlay Zhang
 Date: 2024-05-12 17:56:03
 LastEditors: Hadlay Zhang
-LastEditTime: 2024-05-16 13:40:03
+LastEditTime: 2024-05-31 00:24:15
 FilePath: /root/MedicalVQA-RAD/image.py
 Description: Image Encoder for extracting visual features
 '''
@@ -40,7 +40,8 @@ class ConvNeXtEncoder(nn.Module):
             param.requires_grad = False
         # remove pooling, softmax layers
         self.convnext_feature_extractor = nn.Sequential(*list(self.convnext_pretrained.children())[:-2])
-
+        # -1 with pooling, feature size=1536
+        # -2 no pooling, feature size=75264
     def forward(self, v):
         outputs = self.convnext_feature_extractor(v)
         outputs = torch.flatten(outputs, start_dim=1)

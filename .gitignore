@@ -7,3 +7,5 @@ __pycache__/
 *.file
 text-length.py
 base_model copy.py
+extract.py
+print_models.py
